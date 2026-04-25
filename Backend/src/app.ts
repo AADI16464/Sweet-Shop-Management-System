@@ -13,6 +13,7 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
+  "https://sweet-shop-frontend-rosy.vercel.app",
   process.env.FRONTEND_URL,
 ].filter(Boolean) as string[];
 
