@@ -1,6 +1,6 @@
 import request from "supertest";
 import app from "../src/app";
-import prisma from "../src/prisma";
+import { prisma } from "../src/prisma";
 
 const testUser = { email: "test@example.com", password: "password123", displayName: "Tester" };
 

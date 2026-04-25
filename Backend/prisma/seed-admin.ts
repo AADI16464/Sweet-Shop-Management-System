@@ -7,14 +7,16 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 import { prisma } from "../src/prisma";
 
 async function seedAdmin() {
-  const adminEmail =
-    process.env.ADMIN_EMAIL || "pratapadityasingh2000@gmail.com";
-  const adminPassword =
-    process.env.ADMIN_PASSWORD || "Babita@12";
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const adminPassword = process.env.ADMIN_PASSWORD;
 
-  const hashedPassword = await bcrypt.hash(adminPassword, 10);
+  if (!adminEmail || !adminPassword) {
+    throw new Error("ADMIN_EMAIL or ADMIN_PASSWORD is not set in .env");
+  }
 
-  await prisma.user.upsert({
+  const hashedPassword = await bcrypt.hash(adminPassword, 12);
+
+  const admin = await prisma.user.upsert({
     where: { email: adminEmail },
     update: {
       password: hashedPassword,
@@ -30,7 +32,8 @@ async function seedAdmin() {
   });
 
   console.log("✅ Admin user seeded successfully!");
-  console.log(`📧 Email: ${adminEmail}`);
+  console.log(`📧 Email: ${admin.email}`);
+  console.log(`🛡️ Role: Admin`);
 }
 
 seedAdmin()

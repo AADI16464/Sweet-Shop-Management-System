@@ -3,23 +3,27 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id          String   @id @default(uuid())
-  email       String   @unique
-  password    String
-  displayName String?
-  isAdmin     Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  email           String   @unique
+  password        String
+  displayName     String?
+  isAdmin         Boolean  @default(false)
+  deliveryAddress String?
+  mobileNumber    String?
+  createdAt       DateTime @default(now())
+  
+  orders          Order[]
 
   @@map("users")
 }
 
 model Sweet {
-  id          String   @id @default(uuid())
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
   name        String
   description String?
   category    String?
@@ -29,8 +33,36 @@ model Sweet {
   inStock     Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  
+  orderItems  OrderItem[]
 
-  @@index([name])
-  @@index([category])
   @@map("sweets")
+}
+
+model Order {
+  id        String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String      @db.ObjectId
+  user      User        @relation(fields: [userId], references: [id])
+  total     Float
+  status    String      @default("PENDING")
+  paymentStatus String  @default("PENDING")
+  paymentProvider String?
+  paymentReference String?
+  items     OrderItem[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId   String   @db.ObjectId
+  order     Order    @relation(fields: [orderId], references: [id])
+  sweetId   String   @db.ObjectId
+  sweet     Sweet    @relation(fields: [sweetId], references: [id])
+  quantity  Int
+  price     Float
+
+  @@map("order_items")
 }

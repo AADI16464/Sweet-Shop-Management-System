@@ -16,6 +16,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { type Sweet } from "@/lib/api/client"
+import { getImageUrl } from "@/lib/utils"
+import Image from "next/image"
 
 interface SweetTableProps {
   sweets: Sweet[]
@@ -62,7 +64,19 @@ export function SweetTable({ sweets, onEdit, onDelete }: SweetTableProps) {
             ) : (
               sweets.map((sweet) => (
                 <TableRow key={sweet.id}>
-                  <TableCell className="font-medium">{sweet.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-3">
+                      <div className="relative h-10 w-10 rounded-md overflow-hidden border">
+                        <Image
+                          src={getImageUrl(sweet.imageUrl)}
+                          alt={sweet.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <span>{sweet.name}</span>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     {sweet.category ? <Badge variant="outline">{sweet.category}</Badge> : <span>-</span>}
                   </TableCell>

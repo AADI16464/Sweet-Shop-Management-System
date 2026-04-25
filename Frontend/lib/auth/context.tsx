@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 
 interface AuthContextType {
   user: User | null
+  setUser: (user: User | null) => void
   loading: boolean
   login: (email: string, password: string) => Promise<void>
   register: (email: string, password: string, displayName?: string) => Promise<void>
@@ -26,7 +27,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (token) {
       // Decode JWT to get user info (basic implementation)
       try {
-        const payload = JSON.parse(atob(token.split(".")[1]))
+        const parts = token.split(".")
+        const payload = JSON.parse(atob(parts[1]))
+        
+        // Check expiration
+        if (payload.exp && payload.exp * 1000 < Date.now()) {
+          apiClient.logout()
+          setLoading(false)
+          return
+        }
+        
         setUser({
           id: payload.id,
           email: payload.email,
@@ -61,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
+        setUser,
         loading,
         login,
         register,

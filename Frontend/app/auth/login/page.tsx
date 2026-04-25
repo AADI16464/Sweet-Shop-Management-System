@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { apiClient } from "@/lib/api/client"
+import { useAuth } from "@/lib/auth/context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 export default function LoginPage() {
+  const { login, user } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -25,15 +26,23 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      await apiClient.login(email, password)
-      router.push("/")
-      router.refresh()
+      await login(email, password)
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred")
-    } finally {
       setIsLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (user) {
+      if (user.isAdmin) {
+        router.push("/admin")
+      } else {
+        router.push("/")
+      }
+      router.refresh()
+    }
+  }, [user, router])
 
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10 bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 relative overflow-hidden">

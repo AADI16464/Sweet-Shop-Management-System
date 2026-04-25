@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,7 +14,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { type Sweet } from "@/lib/api/client"
 
@@ -39,7 +37,7 @@ interface SweetDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   sweet: Sweet | null
-  onSave: (sweet: Sweet) => void
+  onSave: (formData: FormData) => void
 }
 
 export function SweetDialog({ open, onOpenChange, sweet, onSave }: SweetDialogProps) {
@@ -49,9 +47,10 @@ export function SweetDialog({ open, onOpenChange, sweet, onSave }: SweetDialogPr
     description: "",
     price: "",
     category: "",
-    imageUrl: "",
     quantity: "0",
   })
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
 
   useEffect(() => {
     if (sweet) {
@@ -60,58 +59,51 @@ export function SweetDialog({ open, onOpenChange, sweet, onSave }: SweetDialogPr
         description: sweet.description || "",
         price: sweet.price.toString(),
         category: sweet.category || "",
-        imageUrl: sweet.imageUrl || "",
         quantity: sweet.quantity.toString(),
       })
+      setImagePreview(sweet.imageUrl)
+      setImageFile(null)
     } else {
       setFormData({
         name: "",
         description: "",
         price: "",
         category: "",
-        imageUrl: "",
         quantity: "0",
       })
+      setImagePreview(null)
+      setImageFile(null)
     }
   }, [sweet])
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setImageFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
-    const sweetData: Partial<Sweet> & { name: string; price: number; quantity: number } = {
-      name: formData.name,
-      description: formData.description || undefined,
-      price: Number.parseFloat(formData.price),
-      category: formData.category || undefined,
-      imageUrl: formData.imageUrl || undefined,
-      quantity: Number.parseInt(formData.quantity) || 0,
+    const data = new FormData()
+    data.append("name", formData.name)
+    data.append("description", formData.description)
+    data.append("price", formData.price)
+    data.append("category", formData.category)
+    data.append("quantity", formData.quantity)
+    
+    if (imageFile) {
+      data.append("image", imageFile)
     }
 
-    if (sweet) {
-      // Update existing sweet
-      const updated: Sweet = {
-        ...sweet,
-        ...sweetData,
-      }
-      onSave(updated)
-    } else {
-      // Create new sweet
-      const newSweet: Sweet = {
-        id: "", // Will be set by backend
-        name: sweetData.name,
-        description: sweetData.description || null,
-        price: sweetData.price,
-        category: sweetData.category || null,
-        imageUrl: sweetData.imageUrl || null,
-        quantity: sweetData.quantity,
-        inStock: sweetData.quantity > 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }
-      onSave(newSweet)
-    }
-
+    onSave(data)
     setIsLoading(false)
   }
 
@@ -122,9 +114,12 @@ export function SweetDialog({ open, onOpenChange, sweet, onSave }: SweetDialogPr
           <DialogHeader>
             <DialogTitle>{sweet ? "Edit Sweet" : "Add New Sweet"}</DialogTitle>
             <DialogDescription>
-              {sweet ? "Update the details of this sweet" : "Add a new sweet to your inventory"}
+              {sweet
+                ? "Update the details of this sweet"
+                : "Add a new sweet to your inventory"}
             </DialogDescription>
           </DialogHeader>
+
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="name">Name *</Label>
@@ -132,20 +127,22 @@ export function SweetDialog({ open, onOpenChange, sweet, onSave }: SweetDialogPr
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Gulab Jamun, Rasgulla, Kaju Katli"
+                placeholder="Gulab Jamun, Rasgulla, Kaju Katli"
                 required
               />
             </div>
+
             <div className="grid gap-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Describe the sweet's taste, texture, and ingredients..."
+                placeholder="Taste, texture, ingredients..."
                 rows={3}
               />
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="price">Price (₹/kg) *</Label>
@@ -156,15 +153,17 @@ export function SweetDialog({ open, onOpenChange, sweet, onSave }: SweetDialogPr
                   min="0"
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  placeholder="50.00"
                   required
                 />
               </div>
+
               <div className="grid gap-2">
                 <Label htmlFor="category">Category</Label>
                 <Select
                   value={formData.category}
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, category: value })
+                  }
                 >
                   <SelectTrigger id="category">
                     <SelectValue placeholder="Select category" />
@@ -179,16 +178,29 @@ export function SweetDialog({ open, onOpenChange, sweet, onSave }: SweetDialogPr
                 </Select>
               </div>
             </div>
+
             <div className="grid gap-2">
-              <Label htmlFor="imageUrl">Image URL</Label>
-              <Input
-                id="imageUrl"
-                type="url"
-                value={formData.imageUrl}
-                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                placeholder="/indian-sweet.jpg"
-              />
+              <Label htmlFor="image">Sweet Image</Label>
+              <div className="flex items-center gap-4">
+                {imagePreview && (
+                  <div className="relative h-16 w-16 rounded-lg overflow-hidden border">
+                    <img
+                      src={imagePreview.startsWith("data:") ? imagePreview : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4005"}${imagePreview}`}
+                      alt="Preview"
+                      className="object-cover w-full h-full"
+                    />
+                  </div>
+                )}
+                <Input
+                  id="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="cursor-pointer"
+                />
+              </div>
             </div>
+
             <div className="grid gap-2">
               <Label htmlFor="quantity">Quantity *</Label>
               <Input
@@ -196,12 +208,14 @@ export function SweetDialog({ open, onOpenChange, sweet, onSave }: SweetDialogPr
                 type="number"
                 min="0"
                 value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                placeholder="0"
+                onChange={(e) =>
+                  setFormData({ ...formData, quantity: e.target.value })
+                }
                 required
               />
             </div>
           </div>
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
@@ -209,7 +223,7 @@ export function SweetDialog({ open, onOpenChange, sweet, onSave }: SweetDialogPr
             <Button
               type="submit"
               disabled={isLoading}
-              className="bg-gradient-to-r from-red-500 via-orange-400 to-red-400 hover:shadow-lg"
+              className="bg-linear-to-r from-red-500 via-orange-400 to-red-400"
             >
               {isLoading ? "Saving..." : sweet ? "Update" : "Create"}
             </Button>

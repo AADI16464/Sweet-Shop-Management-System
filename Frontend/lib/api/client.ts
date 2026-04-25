@@ -1,9 +1,11 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4001";
 
 export interface User {
   id: string;
   email: string;
   displayName?: string;
+  deliveryAddress?: string;
+  mobileNumber?: string;
   isAdmin: boolean;
 }
 
@@ -23,6 +25,47 @@ export interface Sweet {
 export interface AuthResponse {
   token: string;
   user: User;
+}
+
+export interface OrderItem {
+  id: string;
+  sweetId: string;
+  quantity: number;
+  price: number;
+  sweet?: Sweet;
+}
+
+export interface Order {
+  id: string;
+  userId: string;
+  total: number;
+  status: string;
+  paymentStatus: string;
+  paymentProvider?: string | null;
+  paymentReference?: string | null;
+  items: OrderItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaymentSession {
+  provider: string;
+  sessionId: string;
+  amount: number;
+  currency: string;
+  status: string;
+  message: string;
+  gatewayOrderId?: string;
+  keyId?: string;
+  supportedMethods?: string[];
+}
+
+export interface OrderAnalytics {
+  totalOrders: number;
+  totalRevenue: number;
+  statusCounts: Record<string, number>;
+  revenueByDay: Array<{ date: string; revenue: number }>;
+  topSweets: Array<{ name: string; quantity: number }>;
 }
 
 class ApiClient {
@@ -52,10 +95,15 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const token = this.getToken();
+    const isFormData = options.body instanceof FormData;
+    
     const headers: Record<string, string> = {
-      "Content-Type": "application/json",
       ...(options.headers as Record<string, string>),
     };
+
+    if (!isFormData) {
+      headers["Content-Type"] = "application/json";
+    }
 
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
@@ -82,7 +130,7 @@ class ApiClient {
       // Handle network errors (connection refused, etc.)
       if (error instanceof TypeError && error.message === "Failed to fetch") {
         throw new Error(
-          `Cannot connect to backend server at ${this.baseUrl}. Please make sure the backend is running on port 4000.`
+          `Cannot connect to backend server at ${this.baseUrl}. Please make sure the backend is running and reachable.`
         );
       }
       throw error;
@@ -140,31 +188,17 @@ class ApiClient {
     });
   }
 
-  async createSweet(sweet: {
-    name: string;
-    description?: string;
-    category?: string;
-    price: number;
-    quantity: number;
-    imageUrl?: string;
-  }): Promise<Sweet> {
+  async createSweet(sweet: FormData): Promise<Sweet> {
     return this.request<Sweet>("/api/sweets", {
       method: "POST",
-      body: JSON.stringify(sweet),
+      body: sweet,
     });
   }
 
-  async updateSweet(id: string, sweet: Partial<{
-    name: string;
-    description?: string;
-    category?: string;
-    price: number;
-    quantity: number;
-    imageUrl?: string;
-  }>): Promise<Sweet> {
+  async updateSweet(id: string, sweet: FormData): Promise<Sweet> {
     return this.request<Sweet>(`/api/sweets/${id}`, {
       method: "PUT",
-      body: JSON.stringify(sweet),
+      body: sweet,
     });
   }
 
@@ -187,7 +221,65 @@ class ApiClient {
       body: JSON.stringify({ amount }),
     });
   }
+
+  async getProfile(): Promise<User> {
+    return this.request<User>("/api/auth/profile", {
+      method: "GET",
+    });
+  }
+
+  async updateProfile(payload: {
+    displayName?: string;
+    mobileNumber?: string;
+    deliveryAddress?: string;
+  }): Promise<User> {
+    return this.request<User>("/api/auth/profile", {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async createPaymentSession(amount: number): Promise<PaymentSession> {
+    return this.request<PaymentSession>("/api/orders/payment-session", {
+      method: "POST",
+      body: JSON.stringify({ amount }),
+    });
+  }
+
+  async createOrder(payload: {
+    items: Array<{ sweetId: string; quantity: number }>;
+    paymentReference?: string;
+    paymentProvider?: string;
+    paymentMeta?: {
+      razorpayOrderId?: string;
+      razorpayPaymentId?: string;
+      razorpaySignature?: string;
+    };
+  }): Promise<Order> {
+    return this.request<Order>("/api/orders", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getOrders(): Promise<Order[]> {
+    return this.request<Order[]>("/api/orders", { method: "GET" });
+  }
+
+  async getAllOrders(): Promise<Order[]> {
+    return this.request<Order[]>("/api/orders/admin", { method: "GET" });
+  }
+
+  async updateOrderStatus(id: string, payload: { status?: string; paymentStatus?: string }): Promise<Order> {
+    return this.request<Order>(`/api/orders/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getOrderAnalytics(): Promise<OrderAnalytics> {
+    return this.request<OrderAnalytics>("/api/orders/admin/analytics", { method: "GET" });
+  }
 }
 
 export const apiClient = new ApiClient();
-

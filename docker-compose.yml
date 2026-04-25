@@ -1,0 +1,57 @@
+services:
+  mongo:
+    image: mongo:8
+    container_name: sweet-shop-mongo
+    restart: unless-stopped
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mongo-init:
+    image: mongo:8
+    depends_on:
+      mongo:
+        condition: service_healthy
+    volumes:
+      - ./docker/mongo-init.js:/scripts/mongo-init.js:ro
+    entrypoint: ["bash", "-lc", "mongosh mongodb://mongo:27017 /scripts/mongo-init.js || true"]
+
+  backend:
+    build:
+      context: ./Backend
+    container_name: sweet-shop-backend
+    depends_on:
+      mongo-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: mongodb://mongo:27017/Sweet-Shop?replicaSet=rs0&directConnection=true
+      JWT_SECRET: your-super-secret-jwt-key-change-this-in-production-12345
+      PORT: 4005
+      NODE_ENV: production
+      FRONTEND_URL: http://localhost:3000
+      PAYMENT_PROVIDER: MOCK_GATEWAY
+      RAZORPAY_KEY_ID: ""
+      RAZORPAY_KEY_SECRET: ""
+    ports:
+      - "4005:4005"
+
+  frontend:
+    build:
+      context: ./Frontend
+    container_name: sweet-shop-frontend
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:4005
+    ports:
+      - "3000:3000"
+
+volumes:
+  mongo_data:

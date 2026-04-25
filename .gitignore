@@ -4,69 +4,33 @@ node_modules/
 # Environment files
 .env
 .env.local
+.env.production
 
 # Build outputs
-.next
-dist
+.next/
+dist/
+build/
 
 # Prisma
 prisma/dev.db
+
+# Backend-specific
+Backend/data/
+Backend/log/
+Backend/backend-dev.log
+Backend/uploads/
 
 # Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-# Dependencies
-node_modules/
 
-# Environment files
-.env
-.env.local
+# OS files
+.DS_Store
+Thumbs.db
 
-# Build outputs
-.next
-dist
-
-# Prisma
-prisma/dev.db
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-# Dependencies
-node_modules/
-
-# Environment files
-.env
-.env.local
-
-# Build outputs
-.next
-dist
-
-# Prisma
-prisma/dev.db
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-# Dependencies
-node_modules/
-
-# Environment files
-.env
-.env.local
-
-# Build outputs
-.next
-dist
-
-# Prisma
-prisma/dev.db
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

@@ -1,6 +1,6 @@
 import request from "supertest";
 import app from "../src/app";
-import prisma from "../src/prisma";
+import { prisma } from "../src/prisma";
 
 let userToken: string;
 let adminToken: string;
@@ -32,7 +32,7 @@ describe("Sweets API", () => {
   it("creates a sweet (protected)", async () => {
     const res = await request(app)
       .post("/api/sweets")
-      .set("Authorization", `Bearer ${userToken}`)
+      .set("Authorization", `Bearer ${adminToken}`)
       .send({ name: "Lollipop", price: 1.5, quantity: 10, category: "Candy" });
     expect(res.status).toBe(201);
     expect(res.body.name).toBe("Lollipop");
@@ -53,7 +53,10 @@ describe("Sweets API", () => {
   });
 
   it("updates a sweet", async () => {
-    const res = await request(app).put(`/api/sweets/${sweetId}`).set("Authorization", `Bearer ${userToken}`).send({ price: 2.0 });
+    const res = await request(app)
+      .put(`/api/sweets/${sweetId}`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ price: 2.0 });
     expect(res.status).toBe(200);
     expect(res.body.price).toBe(2.0);
   });

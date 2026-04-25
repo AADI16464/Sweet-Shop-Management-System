@@ -6,13 +6,18 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 import { prisma } from "../src/prisma";
 
 async function seed() {
+  console.log("🌱 Seeding sweet shop database...");
+
+  // Clear existing sweets (DEV ONLY – remove for production)
+  await prisma.sweet.deleteMany();
+
   const sweets = [
     {
       name: "Gulab Jamun",
       description:
         "Soft deep-fried milk-solid dumplings soaked in aromatic sugar syrup.",
-      category: "Indian Sweet",
-      price: 40,
+      category: "Milk-based",
+      price: 400, // ₹/kg
       quantity: 50,
       imageUrl: "/sweets/gulab-jamun.jpg",
     },
@@ -20,8 +25,8 @@ async function seed() {
       name: "Jalebi",
       description:
         "Crispy spiral-shaped sweet soaked in saffron-flavored sugar syrup.",
-      category: "Indian Sweet",
-      price: 30,
+      category: "Fried",
+      price: 300,
       quantity: 40,
       imageUrl: "/sweets/jalebi.jpg",
     },
@@ -29,8 +34,8 @@ async function seed() {
       name: "Kaju Katli",
       description:
         "Premium cashew-based fudge with a smooth texture and rich taste.",
-      category: "Indian Sweet",
-      price: 60,
+      category: "Barfi",
+      price: 900,
       quantity: 25,
       imageUrl: "/sweets/kaju-katli.jpg",
     },
@@ -38,8 +43,8 @@ async function seed() {
       name: "Laddu",
       description:
         "Traditional round sweet made with gram flour, ghee, and sugar.",
-      category: "Indian Sweet",
-      price: 25,
+      category: "Laddu",
+      price: 250,
       quantity: 60,
       imageUrl: "/sweets/laddu.jpg",
     },
@@ -47,8 +52,8 @@ async function seed() {
       name: "Mysore Pak",
       description:
         "Classic South Indian sweet made from ghee, sugar, and gram flour.",
-      category: "Indian Sweet",
-      price: 45,
+      category: "Halwa",
+      price: 450,
       quantity: 30,
       imageUrl: "/sweets/mysore-pak.jpg",
     },
@@ -56,8 +61,8 @@ async function seed() {
       name: "Rasgulla",
       description:
         "Spongy cottage cheese balls soaked in light sugar syrup.",
-      category: "Indian Sweet",
-      price: 35,
+      category: "Milk-based",
+      price: 350,
       quantity: 45,
       imageUrl: "/sweets/rasgulla.jpg",
     },
@@ -65,8 +70,8 @@ async function seed() {
       name: "Rasmalai",
       description:
         "Soft paneer discs immersed in thick saffron-flavored milk.",
-      category: "Indian Sweet",
-      price: 55,
+      category: "Milk-based",
+      price: 550,
       quantity: 20,
       imageUrl: "/sweets/rasmalai.jpg",
     },
@@ -77,7 +82,6 @@ async function seed() {
       ...sweet,
       inStock: sweet.quantity > 0,
     })),
-    skipDuplicates: true,
   });
 
   console.log("✅ Sweet shop database seeded successfully!");
